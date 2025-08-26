@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sample-ingress
+  namespace: dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: / # The annotation nginx.ingress.kubernetes.io/rewrite-target controls how the NGINX Ingress controller behaves for this specific Ingress resource.
+spec:
+  ingressClassName: nginx ##The spec.ingressClassName controls which Ingress controller will manage the Ingress.  ingressClassName: traefik use this for another ingress class
+  rules:
+    - host: dev.example.com
+      http:
+        paths:
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: my-java-app
+                port:
+                  number: 8080
