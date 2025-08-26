@@ -1,0 +1,80 @@
+
+
+kubectl cluster-info
+
+kubectl get nodes
+
+ kubectl get nodes -o wide
+
+  kubectl get pods
+
+  kubectl get all -n namespace (ex:name of the namspace)
+
+  kubectl get pods --namespace kube-system -o wide
+
+  ## command to get a list of everything thats running in all namespaces. In addition to pods, we see services, daemonsets, deployments and replicasets. 
+   kubectl get all --all-namespaces | more
+
+   ## command to list all the clusters in subscription
+   kubectl config get-contexts
+
+   ## command to set to the particular cluster
+   kubectl config use-context <cluster-name>
+
+   ## command to directly look for pods in particular cluster and a namespace
+   kubectl-context=<cluster-name> get pods -n <namespace>
+
+## this will list all namespaces in a cluster
+   kubectl get all namespaces
+
+## this will list the pods in a specific namespace
+    kubectl get pods -n namepace-name (ecomm-booking-api-dev)
+
+## this will list all the things in a namespace
+  kubectl get all -n namespace-name (ecomm-booking-api-dev)
+
+   ## asking k8 for the resource it knows about
+   kubectl api-resources | more
+
+   ## shoortcut commands
+   kubectl get no (instead of nodes)
+
+   ## fliter using group
+    kubectl api-resources | grep pod
+   
+   ## explain indivdual resource in detail
+   kubectl explain pod | more
+   kubectl explain pod.spec | more
+   kubectl explain pod.spec.containers | more
+   kubectl explain pod --recursive | more
+
+   Kubectl describe nodes ## will give info about nodes
+   kubectl describe nodes nodename ( will describe the mentioned node)
+
+   kubectl -h | more
+   kubectl get -h | more
+
+   kubectl create -h | more
+
+   ## tired of typing commands out, lets enable the bash auto-complete of our kubectl commnds
+
+   sudo apt-get install -y bash-completion
+   echo "source <(kubectl completion bash)" >> ~/.bashrc
+   source ~/.bashrc
+type kube and double tab
+
+so when you want auto complete then you have hit double tab (2 times tab)
+
+
+   kubectl g[tab][tab] po[tab][tab] --all[tab][tab]
+
+   ## logs
+   kubectl logs podname -n namespace
+
+## to get inside into a pod
+kubectl exec -n <namespace-name> <podname> -it -- bin/sh
+
+## to get complete descriptionof a pod
+kubectl describe pod <podname> -n <nampaces-name>
+
+##

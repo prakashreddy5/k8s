@@ -1,0 +1,55 @@
+
+
+ensure azure cli command line utilities are installed
+
+hhtps://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-lates
+
+AZ_REPO=$(lsb_release -cs)
+
+echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list
+
+deb [arch=amd64] https://packages.microsoft.com/repos/azurecli/ bionic main
+
+curl -sl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null
+
+sudo apt-get update
+
+sudo apt-get install azure cli
+
+az login
+
+az account set --subscription "sub-name"
+
+"az group create --name "kubernetes-Cloud" --location centralus" (create a resouce group for the services we are going to create)
+
+az aks get-versions --location centralus -o table (get a list of the versions available to us)
+
+Create our aks managed cluster. Use --kubernetes-version to specify a version
+
+az aks create \
+    --resource-group "kubernetes-cloud"
+    --generate-ssh-keys \
+    --node-count 3 ##default node count is 3
+
+az aks install-cli (we can download and install kubectl on our local system)
+
+### command to get our cluster credentials and merge the config into our existing config file. This will allow us to connect to this system remotely using certificate based user authentication.
+
+" az aks get-credentials --resource-group "kubernetes-cloud" --name CSCluster
+
+### kubernetes-cloud is the name we used here###
+
+kubectl config get-contexts
+
+## to change the config
+
+kubectl config use-context "clustername"
+
+## config means it show to which config you using means any kubectl command from your machine will reach out to the config you set.
+
+## when we config to cluster and hit "kubectl get node"  will list all nodes of a cluster and hide the control plane cluster(master node)
+
+## if yoy hit "kubectl get pods -all-namspaces -- this will give all the pods in worker node and hide the control plans pods
+
+az aks delete --resource-group "kubernetes-Cloud" --name CSCluster #--yes --no-wait
+
