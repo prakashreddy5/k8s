@@ -1,0 +1,36 @@
+appversion: v1  ##to create the service account
+kind: serviceaccount
+metadata:
+ -name=cicd-token
+  namespace=app-team1
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prakash
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: cicd-token
+  namespace: app-team1
+
+# to back up the data
+
+ETCDCTL_API=3 etcdctl \
+--endpoints= https://127.0.0.1:2379 \
+--cacert= /opt/KUINOO601/ca.crt \
+--cert= /opt/KUINOO6O1/etcd-client.crt
+--key= /opt/KUINOO6O1/etcd-client.key \
+snaphot save /data/backup/etcd-snapshot.db
+
+# restore snapshot
+sudo systemctl stop etcd
+
+ETCDCTL__API=3 etcdctl snapshot restore /var/lib/backup/etcd-snapshot-revious.db \
+--data-dir /var/lib/etcd-snapshot-previous.db
+
+
+

@@ -1,0 +1,291 @@
+kubectl create serviceaccount pvviewer
+kubectl create clusterrole pvviewer-role --verb=list --resources=PersistentVolumes
+kubectl create clusterrolebinding pvviewer-role-binding --clusterrole=pvviewer-role --serviceaccount=default:pvviewer
+
+create a pod called pvviewer with the image: redis and serviceaccount:pvviewer in the default namespace
+# kubectl create pod pvviewer --image=redis
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: pvviewer
+spec:
+  serviceAccountName: pvviewer
+  containers:
+    - name: redis
+      image: redis
+
+# create a new deployment called nginx-deploy with image nginx:1.16 and 1 replica.
+# Next upgrade the deployment to version 1.17 using rollingupdate. make sure that the version is recorded in the resource annotation
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nginx-deploy
+  labels:
+    app: nginx-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-deploy
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: nginx-deploy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.16
+#save yaml as nginx-deploy.yaml
+#kubectl apply -f nginx-deploy.yaml --record
+# kubectl get deployment nginx-deploy
+# kubectl rollout history deployment nginx-deploy
+# kubectl set image deployment/nginx-deploy nginx=nginx:1.17 --record
+# kubectl describe deployment nginx-deploy
+
+# Create snapshot of the etcd running at http://127.0.0.1:2379. save snapshot into /opt/etcd-snapshot.db
+
+ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
+--cert=/etc/kubernetes/pki/etcd/server.crt \
+--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+--key=/etc/kubernetes/pki/etcd/server.key \
+snapshot save /opt/etcd-snapshot.db
+
+#restore
+ETCDCTL_API=3 etcdctl snapshot restore /opt/etcd-snapshot.db --data-dir=<new_data_directory>
+
+ETCDCTL_API=3 etcdctl snapshot restore snapshot.db --data-dir=/var/lib/etcd/new_data
+
+go to /etc/etcd/etcd.conf
+
+ETCD_DATA_DIR="/var/lib/etcd/new_data"
+systemctl start etcd
+
+# create a pv with the given spec: name: pv-analytics Storage: 100Mi AccessModes: ReadWriteMany, HostPath: /pv/data-analytics
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-analytics
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  hostPath: 
+    path: /pv/data-analytics
+
+# 5 answer https://k21academy.com/docker-kubernetes/cka-ckad-exam-questions-answers/ 
+kubectl taint node node-1 env_type=production:NoSchedule
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dev-redis
+spec:
+  containers:
+    - name: redis
+      image: redis:alpine
+      ports:
+        - containerPort: 80
+
+# save yaml and kubectl apply -f dev-redis.yaml
+# kubectl get pod dev-redis -o wide
+# now toleration
+apiVersion: v1
+kind: Pod
+metadata:
+  name: prod-redis 
+spec:
+  tolerations:
+    - key: env_type
+      operator: Equal
+      value: production
+      effect: NoSchedule
+  containers:
+    - name: prod-redis
+      image: redis:alpine
+      ports:
+        - containerPort: 80
+
+# 6 answer
+kubectl drain node <node-name> --ignore-daemonsets
+
+# 7 answer
+apiVersion: v1
+kind: Pod
+metadata:
+  name: non-root-pod
+spec:
+  securityContext:
+    runAsUser: 1000
+    fsGroup: 2000
+  containers:
+    - image: redis:alpine
+      name: redis
+
+# Allow Ingress Traffic to pods labeled app: web from pods labeled app: backend on port 8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingresstraffic
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 8080    
+
+# Deny all incoming traffic to pods labelled app: db
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-traffic
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+
+# allow all incoming traffic to pods labelled app: db
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traffic
+spec:
+  podSelector:
+    matchLabels:
+      app: db
+  policyTypes:
+    - Ingress
+  ingress:
+    - {}
+
+# allow pods in the frontend namespace to connect to pods labelled app: api
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pods
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              type: frontend
+      ports:
+        - protocol: TCP
+          port: 3000
+
+# create a deployment by command line
+kubectl run webapp --image=<image-name:tag> --port=80 --replicas=4 -n <namespace> -o yaml
+
+# create service
+kubectl expose deployment/webapp --target-port=8080 --port=80 --type=NodePort -n <namespace> --dry-run -o yaml > service.yaml
+
+# send a traffic to one of our pod with busybox
+kubectl run busybox --image=busybox --rm -it --restart=Never -- sh
+wget -O- <pod_ip_address>:80
+
+
+#pluralsight scanrio 3
+# create a deployment named "webfront-deploy"
+kubectl create deployment webfront-deploy --image=nginx:1.7.8 --port=80 --replicas=2
+
+#create a service "webfront-service" expose port 80 and target port 80 and should listen externally on port30080
+kubectl expose deployment/webfron-deploy --port=80 --target-port=80 --type=NodePort --name=webfront-service --external-port=30080 --dry-run -o yaml > webfront-service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webfront-service
+spec:
+  type: NodePort
+  selector:
+    app: webfront-deploy
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+
+# create a pod named "db-redis" using the image redisand tag latest
+kubectl run db-redis --image=redis:latest --restart=Never
+
+kubectl run ping-source --image=busybox --restart=Never --command -- sh -c "sleep 3600"
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ping-source
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sh", "-c", "sleep 3600"]
+
+create a network policy that will deniy pod communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+
+# create a network plocy that apply ingress rule for the pods labelled with role-db to allow trafficon port 6379 from pods labelled app-frontend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-db-frontend
+spec:
+  podselector:
+    matchLabels:
+      role: db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLables:
+              app: frontend
+          ports:
+            - protocol: TCP
+              port: 6379
+
+sudo ETCDCTL_API=3 etcdctl snapshot restore /home/cloud_user/etcd_backup.db \
+  --initial-cluster etcd-restore=https://etcd1:2380 \
+  --initial-advertise-peer-urls https://etcd1:2380 \
+  --name etcd-restore \
+  --data-dir /var/lib/etcd
+
+# upgrade cluster a worker node
+kubectl drain <node-name> --ignore-daemonsets
+sudo apt-get update -y
+sudo apt-get install kubeadm=v1.27.9 --allow-change-held-packages -y
+sudo kudeadm upgrade plan v1.27.9
+sudo kubeadm upgrade apply v1.27.9
+sudo apt-get install kubelet=v1.27.9 kubectl=v1.27.9 --allow-change-held-packages -y
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+#worker node
+kubectl drain node-1 --ignore-daemonsets
+sudo apt-get update -y
+sudo apt-get install kubelet=1.27.9 kubectl=1.27.9 --allow-change-held-packages -y
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet

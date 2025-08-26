@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firtdeployment
+  labels:
+    app: my-app
+spec:
+  replicas: 4
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                 - key: prakash
+                   operator: In
+                   values:
+                     - reddy
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - hello-world
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: helloworld
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: "app"
+          operator: "Equal"
+          value: "hello-world"
+          effect: "NoSchedule"
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          env:
+            - name: prakash
+              valueFrom:
+                secretKeyRef:
+                  name: prakash
+                  key: username
+            - name: prakash
+              valueFrom:
+                secretKeyRef:
+                  name: prakash
+                  key: password
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "514m"
+          volumeMounts:
+            - name: prakash-pvc
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+      volumes:
+        - name: prakash-pvc
+          persistentVolumeClaim:
+            claimName: my-pvc
+
+# network policies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: firstpolicy
+  namespace: my-dev
+spec:
+  podSelector:
+    matchLabels:
+      name: value
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              key: value
+        - namespaceSelector:
+            matchLabels:
+              key: value
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+
