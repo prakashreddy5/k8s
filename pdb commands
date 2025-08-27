@@ -1,0 +1,12 @@
+Take backup of existing PDB
+ 
+ 
+Plain Text
+kubectl get pdb -A | grep -vE 'kube-system|contrast-agent-operator'  | \
+awk '{ print "kubectl patch pdb -n " $1 " " $2 " --patch '\''{\"spec\":{\"minAvailable\":\"" $3 "\"}}'\''"}'
+ 
+Zero out all pdb
+ 
+Plain Text
+kubectl get pdb -A | grep -vE 'kube-system|contrast-agent-operator' | awk '  NR > 1 { print "kubectl patch pdb -n " $1 " " $2 " --patch  "}' | sed -e 's/--patch/--patch '\''{"spec":{"minAvailable": "0%"}}'\'' /g'
+ 
